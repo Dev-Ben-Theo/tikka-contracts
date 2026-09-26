@@ -168,6 +168,9 @@ pub enum DataKey {
     QuorumSeed(Address),
     QuorumSubmittedOracles,
     MetadataHash,
+    /// Cursor for the amortised ticket-TTL rolling window in
+    /// `helpers::bump_raffle_ttl` (#1010). Instance tier; not consensus-critical.
+    LastBumpedIndex,
 }
 
 #[contracttype]
@@ -977,11 +980,20 @@ if config.randomness_source == RandomnessSource::External {
     /// Permissionless entrypoint — anyone may call this to prevent a raffle
     /// from being archived by Soroban's TTL expiry.
     ///
-    /// This entrypoint is currently unimplemented and returns
-    /// [`Error::InvalidParameters`]. It does not bump any TTLs.
-    pub fn extend_ttl(env: Env) -> Result<(), Error> {
+    /// Bumps the instance entry plus a paginated window of persistent ticket
+    /// entries (`limit` entries starting at 1-indexed `start_ticket_id`),
+    /// so operators can keep a long-running raffle alive without an O(n)
+    /// call (#1010). Returns the number of ticket entries refreshed.
+    /// See `docs/STORAGE.md` § "Raffle TTL Management" for the retention
+    /// window each bump provides.
+    pub fn extend_ttl(env: Env, start_ticket_id: u32, limit: u32) -> Result<u32, Error> {
         let _raffle = read_raffle(&env)?;
-        Err(Error::InvalidParameters)
+        env.storage().instance().extend_ttl(
+            raffle_shared::constants::INSTANCE_TTL_THRESHOLD_LEDGERS,
+            raffle_shared::constants::INSTANCE_TTL_BUMP_LEDGERS,
+        );
+        Ok(crate::helpers::extend_ticket_ttls(&env, start_ticket_id, limit))
+    }
 }
 
 #[cfg(test)]

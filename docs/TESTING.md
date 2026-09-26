@@ -172,6 +172,49 @@ Do **not** replace unit tests with fuzz-only coverage: CI always runs `cargo tes
 
 ---
 
+## Coverage ratchet
+
+Rust line coverage is enforced by a ratchet: `scripts/check_coverage_ratchet.py`
+compares the current `lcov` output against the committed floor in
+`coverage/coverage-ratchet.json`. Coverage must never decrease — per file or
+overall — and a missing baseline entry fails loudly instead of passing
+silently. Deleting a test file without re-baselining fails the check.
+
+```bash
+# Collect coverage (pinned toolchain, from repo root)
+cargo llvm-cov --workspace --lcov --output-path coverage/lcov.info
+
+# Check against the committed floor (this is what CI runs)
+python3 scripts/check_coverage_ratchet.py \
+  --lcov coverage/lcov.info \
+  --baseline coverage/coverage-ratchet.json
+```
+
+### Raising the floor
+
+Coverage increases are adopted explicitly: re-run with `--update-baseline`
+and commit the regenerated JSON **in the same PR** so the new floor is a
+reviewable diff.
+
+```bash
+python3 scripts/check_coverage_ratchet.py \
+  --lcov coverage/lcov.info \
+  --baseline coverage/coverage-ratchet.json \
+  --update-baseline
+git diff coverage/coverage-ratchet.json  # review, then commit
+```
+
+Rules of thumb:
+
+- New behavior should keep or raise coverage; a drop means either missing
+  tests or dead code to remove.
+- If you intentionally delete a covered file, re-baseline in the same PR and
+  call it out in the PR description.
+- Never hand-edit the baseline numbers — always regenerate from a clean
+  `cargo llvm-cov` run on the pinned toolchain.
+
+---
+
 ## Checklist before opening a PR
 
 - [ ] `cargo test -p <crate>` (or `--workspace`) passes for crates you touched

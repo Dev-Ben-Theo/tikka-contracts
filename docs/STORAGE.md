@@ -196,22 +196,47 @@ Persistent keys need `--durability persistent` and `--key …` (or batched tooli
 ## Raffle TTL Management
 
 ### Instance TTL
-The raffle instance entry is bumped on every `buy_tickets` and `finalize_raffle` call via `bump_raffle_ttl()`.
+
+The raffle instance entry is bumped on every `buy_tickets`,
+`finalize_raffle`, and `extend_ttl` call.
 
 - **Threshold**: `INSTANCE_TTL_THRESHOLD_LEDGERS` (1,555,200 ledgers / ~3 months)
 - **Bump to**: `INSTANCE_TTL_BUMP_LEDGERS` (3,110,400 ledgers / ~6 months)
-- **Frequency**: Bumped unconditionally on every purchase
+- **Frequency**: Bumped unconditionally on every purchase and finalize
 
-### Ticket TTL (Amortised Bumping)
-Ticket entries are NOT bumped all at once to avoid exceeding the Soroban resource budget.
+### Ticket TTL (bounded window + operator pagination)
 
-- **Window size**: 100 tickets per call
-- **Strategy**: Each `bump_raffle_ttl` call bumps the next `WINDOW_SIZE` tickets
-- **Cycle**: Once all tickets are bumped, the cycle resets to keep entries alive
-- **Cost**: O(window_size) regardless of total tickets sold
+Ticket records live in **persistent** storage — `Ticket(id)`,
+`TicketCount(addr)`, `TicketRefunded(id)`, `OwnerTickets(addr)` — with their
+own per-key TTLs, independent of the instance entry. Bumping all of them per
+purchase would be O(n), so the work is split (#1010):
 
-### Why This Works
-- Each purchase calls `bump_raffle_ttl`
-- Over time, all tickets get bumped
-- Tickets expire after ~6 months if not bumped
-- Winners have plenty of time to claim their prizes
+| Call | Keys bumped | Window |
+|---|---|---|
+| `buy_tickets` / `buy_tickets_for` (via `bump_raffle_ttl`) | Instance entry + rolling window of `Ticket(id)` | `TTL_BUMP_WINDOW` (100) entries per call, cycling via `LastBumpedIndex` |
+| `buy_tickets` touched-ticket bump (via `bump_touched_tickets`) | The `quantity` tickets minted by this call + buyer's `TicketCount` and `OwnerTickets` (+ `TicketRefunded` slots) | Exactly the tickets touched by the call |
+| `extend_ttl(start_ticket_id, limit)` (permissionless, paginated) | Instance entry + `limit` `Ticket(id)` entries from `start_ticket_id` | Operator-chosen; returns the refreshed count |
+| `finalize_raffle` (via `bump_raffle_ttl`) | Instance entry + next rolling window | Same 100-entry window |
+
+### Retention window
+
+Every bump above extends entries to **3,110,400 ledgers (~6 months)** with a
+**1,555,200-ledger (~3-month)** threshold, matching the instance policy:
+
+- `PERSISTENT_TTL_THRESHOLD_LEDGERS` = 1,555,200 (~3 months)
+- `PERSISTENT_TTL_BUMP_LEDGERS` = 3,110,400 (~6 months)
+
+Operators of long-running (especially `no_deadline`) raffles should call
+`extend_ttl(start, limit)` page by page (e.g. 100–500 entries per call)
+monthly, so no ticket record ever approaches expiry while sales, refunds,
+or claims are still possible.
+
+### Why this works
+
+- Each purchase refreshes the instance entry, the tickets it just minted,
+  the buyer's index entries, and the next 100-entry rolling window.
+- Over time, repeated purchases cycle through all tickets.
+- Gaps (quiet raffles with no purchases) are covered by the permissionless
+  paginated `extend_ttl`, which anyone — not just the admin — can call.
+- Tickets expire only ~6 months after their last bump, giving winners ample
+  time to claim.
