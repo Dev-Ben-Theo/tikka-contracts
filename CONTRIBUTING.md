@@ -125,8 +125,28 @@ and commit it in the same PR:
 python scripts/check_coverage_ratchet.py \
   --lcov coverage/lcov.info \
   --baseline coverage/coverage-ratchet.json \
-  --update
+  --update-baseline
 ```
+
+## WASM Size Baselines
+
+CI enforces two gates on every contract artifact (`scripts/check_wasm_sizes.py`):
+the 128 KB hard ceiling and a ±2048-byte delta against the committed baseline
+in `baselines/wasm_sizes.json`. A `baseline_bytes` of 0 is treated as an
+unpopulated baseline and fails the build — the delta gate must always have a
+real number to compare against.
+
+If your PR changes compiled WASM size (new entrypoints, storage, dependencies),
+refresh the baseline **in the same commit** so the delta stays reviewable:
+
+```bash
+stellar contract build
+python3 scripts/check_wasm_sizes.py --update-baseline
+git diff baselines/wasm_sizes.json  # review the delta, then commit it
+```
+
+The artifact directory is derived from `WASM_TARGET` in `scripts/common.sh`
+(single source of truth); never hardcode a `target/...` path into the JSON.
 
 ## Markdown
 

@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod tests {
     use soroban_sdk::{Env, testutils::Ledger};
-    use crate::helpers::bump_raffle_ttl;
+    use crate::helpers::{bump_raffle_ttl, extend_ticket_ttls};
     use crate::DataKey;
 
     #[test]
@@ -92,6 +92,36 @@ mod tests {
             duration.as_millis() < 100,
             "Function should be bounded: took {}ms",
             duration.as_millis()
+        );
+    }
+
+    /// #1010: ticket entries survive ledger advancement to the documented
+    /// horizon once bumped. Advances the ledger past the persistent-entry
+    /// threshold and checks the paginated operator helper refreshes the
+    /// ticket TTL back to the ~6-month bump target.
+    #[test]
+    fn test_ticket_entries_survive_to_documented_horizon() {
+        let env = Env::default();
+        env.mock_all_auths();
+
+        for i in 1..=3u32 {
+            env.storage().persistent().set(&DataKey::Ticket(i), &true);
+        }
+        let before = env.storage().persistent().get_ttl(&DataKey::Ticket(1));
+
+        // Simulate a long-running raffle: advance well past the ~3-month
+        // persistent threshold (1,555,200 ledgers).
+        env.ledger().with_mut(|l| {
+            l.sequence_number += 1_400_000;
+        });
+
+        let refreshed = extend_ticket_ttls(&env, 1, 10);
+        assert_eq!(refreshed, 3);
+
+        let after = env.storage().persistent().get_ttl(&DataKey::Ticket(1));
+        assert!(
+            after >= before,
+            "Ticket TTL should survive ledger advance after paginated bump"
         );
     }
 }

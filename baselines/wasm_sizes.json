@@ -2,14 +2,14 @@
   "tolerance_bytes": 2048,
   "contracts": {
     "raffle_instance": {
-      "path": "target/wasm32-unknown-unknown/release/raffle_instance.wasm",
+      "artifact": "raffle_instance.wasm",
       "max_bytes": 131072,
-      "baseline_bytes": 0
+      "baseline_bytes": 57344
     },
     "raffle_factory": {
-      "path": "target/wasm32-unknown-unknown/release/raffle_factory.wasm",
+      "artifact": "raffle_factory.wasm",
       "max_bytes": 131072,
-      "baseline_bytes": 0
+      "baseline_bytes": 49152
     }
   }
 }

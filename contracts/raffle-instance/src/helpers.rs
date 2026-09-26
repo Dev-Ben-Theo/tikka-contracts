@@ -67,11 +67,113 @@ fn resolve_unique_winner(
     candidate
 }
 
-pub(crate) fn bump_raffle_ttl(env: &Env, _total_tickets: u32) {
+/// Number of persistent ticket entries refreshed per hot-path call.
+///
+/// Bumping every ticket on every purchase would be O(n) in `tickets_sold`
+/// (up to `MAX_TICKETS_LIMIT` = 100,000) and blow the Soroban resource
+/// budget, so each call refreshes at most this many entries. The paginated
+/// [`extend_ticket_ttls`] entrypoint covers the remainder for operators.
+pub(crate) const TTL_BUMP_WINDOW: u32 = 100;
+
+/// Extend instance TTL and keep persistent ticket records alive.
+///
+/// Every parameter is used: `total_tickets` bounds the rolling window so a
+/// long-running raffle (in particular a `no_deadline` one) keeps its
+/// `DataKey::Ticket(id)` entries alive alongside the instance entry.
+/// Without this, the instance entry survives while ticket entries expire
+/// underneath it, so `get_ticket_owner` returns `None` and finalization
+/// fails with `TicketNotFound` against escrowed funds.
+///
+/// Cost is O(`TTL_BUMP_WINDOW`), independent of `total_tickets`.
+pub(crate) fn bump_raffle_ttl(env: &Env, total_tickets: u32) {
     env.storage().instance().extend_ttl(
-        INSTANCE_TTL_THRESHOLD_LEDGERS,
-        INSTANCE_TTL_BUMP_LEDGERS,
+        raffle_shared::constants::INSTANCE_TTL_THRESHOLD_LEDGERS,
+        raffle_shared::constants::INSTANCE_TTL_BUMP_LEDGERS,
     );
+    if total_tickets == 0 {
+        return;
+    }
+    // Rolling window: resume where the previous call left off so repeated
+    // purchases cycle through all tickets over time.
+    let start: u32 = env
+        .storage()
+        .instance()
+        .get(&DataKey::LastBumpedIndex)
+        .unwrap_or(0);
+    let start = start.min(total_tickets);
+    let end = start.saturating_add(TTL_BUMP_WINDOW).min(total_tickets);
+    extend_ticket_ttls(env, start.saturating_add(1), end.saturating_sub(start));
+    let next = if end >= total_tickets { 0 } else { end };
+    env.storage()
+        .instance()
+        .set(&DataKey::LastBumpedIndex, &next);
+}
+
+/// Refresh the persistent TTL of the tickets touched by the current purchase
+/// plus the buyer's index entries.
+///
+/// `first_ticket_id` is the 1-indexed ID of the first ticket minted in this
+/// call and `quantity` the number minted. The buyer's `TicketCount` and
+/// `OwnerTickets` entries are refreshed too, since per-address caps are read
+/// from them on every purchase.
+pub(crate) fn bump_touched_tickets(
+    env: &Env,
+    buyer: &Address,
+    first_ticket_id: u32,
+    quantity: u32,
+) {
+    for offset in 0..quantity {
+        if let Some(ticket_id) = first_ticket_id.checked_add(offset) {
+            env.storage().persistent().extend_ttl(
+                &DataKey::Ticket(ticket_id),
+                raffle_shared::constants::PERSISTENT_TTL_THRESHOLD_LEDGERS,
+                raffle_shared::constants::PERSISTENT_TTL_BUMP_LEDGERS,
+            );
+            env.storage().persistent().extend_ttl(
+                &DataKey::TicketRefunded(ticket_id),
+                raffle_shared::constants::PERSISTENT_TTL_THRESHOLD_LEDGERS,
+                raffle_shared::constants::PERSISTENT_TTL_BUMP_LEDGERS,
+            );
+        }
+    }
+    env.storage().persistent().extend_ttl(
+        &DataKey::TicketCount(buyer.clone()),
+        raffle_shared::constants::PERSISTENT_TTL_THRESHOLD_LEDGERS,
+        raffle_shared::constants::PERSISTENT_TTL_BUMP_LEDGERS,
+    );
+    env.storage().persistent().extend_ttl(
+        &DataKey::OwnerTickets(buyer.clone()),
+        raffle_shared::constants::PERSISTENT_TTL_THRESHOLD_LEDGERS,
+        raffle_shared::constants::PERSISTENT_TTL_BUMP_LEDGERS,
+    );
+}
+
+/// Paginated operator helper: refresh `limit` ticket entries starting at
+/// 1-indexed `start_ticket_id`.
+///
+/// Exposed to operators through the `extend_ttl` entrypoint so anyone can
+/// keep a long-running raffle's ticket records alive without an O(n) call.
+/// Returns the number of entries refreshed.
+pub(crate) fn extend_ticket_ttls(env: &Env, start_ticket_id: u32, limit: u32) -> u32 {
+    let mut refreshed = 0u32;
+    for offset in 0..limit {
+        if let Some(ticket_id) = start_ticket_id.checked_add(offset) {
+            if !env
+                .storage()
+                .persistent()
+                .has(&DataKey::Ticket(ticket_id))
+            {
+                break;
+            }
+            env.storage().persistent().extend_ttl(
+                &DataKey::Ticket(ticket_id),
+                raffle_shared::constants::PERSISTENT_TTL_THRESHOLD_LEDGERS,
+                raffle_shared::constants::PERSISTENT_TTL_BUMP_LEDGERS,
+            );
+            refreshed = refreshed.saturating_add(1);
+        }
+    }
+    refreshed
 }
 
 /// Checked lifecycle transition. All status writes must go through this helper

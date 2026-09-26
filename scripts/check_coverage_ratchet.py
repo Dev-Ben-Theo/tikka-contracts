@@ -8,26 +8,31 @@ Compares current line coverage (from an lcov file produced e.g. by
 
 * **fails the build** when line coverage on a tracked file (or overall) is
   *lower* than the committed baseline,
+* **fails the build** when a tracked file disappears from the current run
+  (e.g. a test file was deleted without re-baselining),
+* **fails the build** when the baseline itself is unpopulated
+  (`overall` is null or `files` is empty) — an empty baseline ratchets
+  nothing, so it must never pass silently,
 * **passes** when coverage is equal or higher,
-* **records increases** when run with `--update` (write the new values back to
-  the baseline so they become the new floor).
-
-First/empty baseline: with no committed values the check is a no-op that
-reports the current numbers; run `--update` once on a clean master result and
-commit the generated baseline to arm the ratchet.
+* **records new values** when run with `--update-baseline` (write the new
+  values back to the baseline so they become the new floor).
 
 Baseline JSON schema (`coverage/coverage-ratchet.json`)::
 
     {
-      "overall": {"covered": 0, "total": 0},   // null until first update
-      "files": {                                // {} until first update
+      "overall": {"covered": 0, "total": 0},
+      "files": {
         "contracts/raffle-instance/src/lib.rs": {"covered": 0, "total": 0}
       }
     }
 
 Usage:
     python scripts/check_coverage_ratchet.py --lcov coverage/lcov.info \
-        --baseline coverage/coverage-ratchet.json [--update]
+        --baseline coverage/coverage-ratchet.json [--update-baseline]
+
+    # Raise/reset the floor explicitly and commit the diff in the same PR:
+    python scripts/check_coverage_ratchet.py --lcov coverage/lcov.info \
+        --baseline coverage/coverage-ratchet.json --update-baseline
 """
 
 import argparse
@@ -84,6 +89,13 @@ def main():
     parser.add_argument("--baseline", required=True, help="Path to baseline JSON")
     parser.add_argument(
         "--update",
+        dest="update_baseline",
+        action="store_true",
+        help="Write current coverage back to the baseline file (deprecated alias)",
+    )
+    parser.add_argument(
+        "--update-baseline",
+        dest="update_baseline",
         action="store_true",
         help="Write current coverage back to the baseline file",
     )
@@ -104,16 +116,23 @@ def main():
     baseline_overall = baseline.get("overall")
 
     regressions = []
+    errors = []
 
-    first_run = not baseline_files and baseline_overall is None
-    if first_run:
-        print("No committed baseline yet — arming the ratchet.")
-        print("Run with --update on a clean baseline and commit the result "
-              "to enable enforcement.")
+    baseline_empty = not baseline_files or baseline_overall is None
+    if baseline_empty:
+        errors.append(
+            "No committed coverage baseline (overall is null or files is empty) — "
+            "the ratchet enforces nothing. Run with --update-baseline on a clean "
+            "workspace result and commit the generated baseline to arm it."
+        )
     else:
         for file, base in sorted(baseline_files.items()):
             cur = current.get(file)
             if cur is None or cur["total"] <= 0:
+                regressions.append(
+                    f"  {file}: missing from current coverage run "
+                    "(test file deleted without re-baselining?)"
+                )
                 continue
             base_pct = pct(base["covered"], base["total"])
             cur_pct = pct(cur["covered"], cur["total"])
@@ -134,12 +153,10 @@ def main():
           f"({total_covered}/{total_lines} lines, {len(current)} files)")
 
     newly_covered = sum(1 for f in current if f not in baseline_files and current[f]["total"] > 0)
-    if first_run:
-        newly_covered = 0
     if newly_covered:
-        print(f"{newly_covered} tracked file(s) without a baseline (adopted on --update).")
+        print(f"{newly_covered} tracked file(s) without a baseline (adopted on --update-baseline).")
 
-    if args.update:
+    if args.update_baseline:
         next_overall = {"covered": total_covered, "total": total_lines}
         next_files = {}
         for file in sorted(current):
@@ -157,6 +174,11 @@ def main():
             newline="\n",
         )
         print(f"Updated baseline: {baseline_path}")
+
+    if errors and not args.update_baseline:
+        for e in errors:
+            print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(1)
 
     if regressions:
         print("ERROR: coverage regression detected:", file=sys.stderr)
