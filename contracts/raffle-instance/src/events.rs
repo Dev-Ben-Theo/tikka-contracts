@@ -48,16 +48,6 @@ pub struct TicketPurchased {
     pub timestamp: u64,
 }
 
-#[allow(dead_code)]
-#[derive(Clone)]
-#[contractevent]
-pub struct TicketTransferred {
-    pub ticket_id: u32,
-    pub from: Address,
-    pub to: Address,
-    pub timestamp: u64,
-}
-
 #[derive(Clone)]
 #[contractevent]
 pub struct DrawTriggered {
@@ -246,7 +236,6 @@ pub struct EmergencyWithdrawn {
     pub timestamp: u64,
 }
 
-#[allow(dead_code)]
 #[derive(Clone)]
 #[contractevent]
 pub struct AdminChanged {
