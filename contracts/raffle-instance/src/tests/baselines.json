@@ -1,0 +1,27 @@
+{
+  "tolerance_fraction": 0.10,
+  "buy_tickets_max_batch": {
+    "cpu_instructions": 30000000,
+    "memory_bytes": 10485760,
+    "read_bytes": 0,
+    "write_bytes": 0
+  },
+  "finalize_max_prizes": {
+    "cpu_instructions": 80000000,
+    "memory_bytes": 25165824,
+    "read_bytes": 0,
+    "write_bytes": 0
+  },
+  "sweep_unclaimed_max_tiers": {
+    "cpu_instructions": 50000000,
+    "memory_bytes": 20971520,
+    "read_bytes": 0,
+    "write_bytes": 0
+  },
+  "extend_ttl_max_tickets": {
+    "cpu_instructions": 40000000,
+    "memory_bytes": 16777216,
+    "read_bytes": 0,
+    "write_bytes": 0
+  }
+}

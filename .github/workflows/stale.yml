@@ -1,0 +1,49 @@
+name: Stale issues and PRs
+
+on:
+  schedule:
+    # Run daily at 01:30 UTC
+    - cron: '30 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    name: Mark and close stale issues/PRs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11
+        with:
+          days-before-issue-stale: 21
+          days-before-issue-close: 7
+          days-before-pr-stale: 21
+          days-before-pr-close: 7
+          stale-issue-label: stale
+          stale-pr-label: stale
+          exempt-issue-labels: critical
+          exempt-pr-labels: critical
+          exempt-all-milestones: true
+          stale-issue-message: >
+            Hello! This issue has been inactive for 21 days. To keep the
+            contribution queue healthy, it will be marked as stale. If you are
+            still working on it or it remains relevant, please leave a comment
+            or push an update and we will gladly keep it open. Thank you for
+            contributing to Tikka!
+          close-issue-message: >
+            Closing this issue after 7 more days of inactivity. Please reopen
+            or open a new issue anytime if you would like to pick this up again
+            — we appreciate your interest in the project.
+          stale-pr-message: >
+            Hello! This pull request has been inactive for 21 days. To keep the
+            review queue manageable, it will be marked as stale. If you are still
+            working on this change, please push an update or leave a comment and
+            we will keep it open. Thank you for your contribution!
+          close-pr-message: >
+            Closing this pull request after 7 more days of inactivity. Feel free
+            to reopen it or open a new PR when you are ready to continue —
+            contributions are always welcome.

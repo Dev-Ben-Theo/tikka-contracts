@@ -1,0 +1,105 @@
+name: Security Audit
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  pull_request:
+    branches: ["master"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  cargo_audit:
+    name: cargo audit (Rust)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Run cargo audit
+        id: audit
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          cargo audit --json > audit-report.json 2>&1 || true
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report_path = Path('audit-report.json')
+          findings = False
+          if report_path.exists():
+              report = json.loads(report_path.read_text(encoding='utf-8'))
+              findings = bool(report.get('vulnerabilities', {}).get('found'))
+
+          out = Path(os.environ['GITHUB_OUTPUT'])
+          with out.open('a', encoding='utf-8') as fh:
+              fh.write(f"findings={'true' if findings else 'false'}\n")
+
+          if findings:
+              report_text = report_path.read_text(encoding='utf-8')
+              Path('audit-output.txt').write_text(report_text, encoding='utf-8')
+          else:
+              Path('audit-output.txt').write_text('cargo audit reported no vulnerabilities.', encoding='utf-8')
+          PY
+
+      - name: Open issue on new findings
+        if: steps.audit.outputs.findings == 'true' && github.event_name == 'schedule'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('audit-output.txt', 'utf8');
+            const title = 'Security: cargo-audit findings';
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'security',
+            });
+            if (issues.data.some((issue) => issue.title === title)) {
+              core.info('Open cargo-audit issue already exists — skipping');
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              labels: ['security', 'dependencies'],
+              body: [
+                'Scheduled `cargo audit` reported advisories against pinned Rust dependencies.',
+                '',
+                '```',
+                body,
+                '```',
+                '',
+                'See [SECURITY.md](SECURITY.md) for triage and response expectations.',
+              ].join('\n'),
+            });
+
+      - name: Fail on advisories
+        if: steps.audit.outputs.findings == 'true'
+        run: exit 1
+
+  npm_audit:
+    name: npm audit (oracle production)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: oracle
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: oracle/package-lock.json
+      - run: npm ci
+      - name: npm audit (production only)
+        run: npm audit --omit=dev --audit-level=high

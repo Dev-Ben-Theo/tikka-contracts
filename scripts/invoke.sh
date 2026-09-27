@@ -1,33 +1,34 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+# Thin wrapper around `stellar contract invoke` for RAFFLE_CONTRACT_ADDRESS.
 
-# Source environment variables if .env exists locally
-if [ -f .env ]; then
-  export $(cat .env | xargs)
-fi
+set -euo pipefail
 
-# Configuration
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/common.sh
+source "${SCRIPT_DIR}/common.sh"
+
+cd "${REPO_ROOT}"
+load_env
+
 NETWORK="${STELLAR_NETWORK:-testnet}"
-CONTRACT_ID="${RAFFLE_CONTRACT_ADDRESS}"
+CONTRACT_ID="${RAFFLE_CONTRACT_ADDRESS:-}"
 
-if [ -z "$CONTRACT_ID" ]; then
-    echo "Error: RAFFLE_CONTRACT_ADDRESS is required"
+require_cmd stellar
+require_env RAFFLE_CONTRACT_ADDRESS "the contract to invoke"
+
+if [[ -z "${1:-}" ]]; then
+    usage "./scripts/invoke.sh <function_name> [args...]"
+    echo "Example: ./scripts/invoke.sh get_admin" >&2
     exit 1
 fi
 
-if [ -z "$1" ]; then
-    echo "Usage: ./scripts/invoke.sh <function_name> [args...]"
-    echo "Example: ./scripts/invoke.sh buy_ticket --source \$DEPLOYER_SECRET_KEY"
-    exit 1
-fi
+FUNCTION_NAME="$1"
+shift
 
-FUNCTION_NAME=$1
-shift # Shift arguments so $@ contains only the remaining args
-
-echo "Invoking $FUNCTION_NAME on contract $CONTRACT_ID ($NETWORK)..."
+echo "Invoking ${FUNCTION_NAME} on contract ${CONTRACT_ID} (${NETWORK})..."
 
 stellar contract invoke \
-  --id "$CONTRACT_ID" \
-  --network "$NETWORK" \
-  --source "${DEPLOYER_SECRET_KEY}" \
-  -- "$FUNCTION_NAME" "$@"
+  --id "${CONTRACT_ID}" \
+  --network "${NETWORK}" \
+  --source "${DEPLOYER_SECRET_KEY:-}" \
+  -- "${FUNCTION_NAME}" "$@"

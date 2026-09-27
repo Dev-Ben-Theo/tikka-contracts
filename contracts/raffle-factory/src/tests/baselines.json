@@ -1,0 +1,15 @@
+{
+  "tolerance_fraction": 0.10,
+  "create_raffle": {
+    "cpu_instructions": 25000000,
+    "memory_bytes": 8388608,
+    "read_bytes": 0,
+    "write_bytes": 0
+  },
+  "get_raffles_page_max": {
+    "cpu_instructions": 15000000,
+    "memory_bytes": 5242880,
+    "read_bytes": 0,
+    "write_bytes": 0
+  }
+}

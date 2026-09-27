@@ -1,9 +1,22 @@
-# Rust's output directory
-target
+# Rust's output
+target/
+*.wasm
 
-# Local settings
-.soroban
-.stellar
+# Cargo.lock is deliberately tracked: these are deployable contracts, not a
+# library, and byte-reproducible builds need the exact dependency graph (#843).
+
+# Node dependencies and build artifacts
+node_modules/
+oracle/node_modules/
+oracle/dist/
+
+# Local Stellar/Soroban settings and deployments
+.soroban/
+.stellar/
+deployments/mainnet.json
+
+# Local environment variables
+.env
 
 # Planning and development files
 task_plan.md
@@ -20,8 +33,15 @@ CLAUDE.md
 # Cursor IDE files
 .cursor/
 
+# Kiro IDE files
+.kiro/
+
 # Test snapshots
 test_snapshots/
+
+# Python tooling cache (scripts/*.py)
+__pycache__/
+*.pyc
 
 # Skills
 .windsurf/
@@ -31,4 +51,19 @@ requirements.md
 .github/skills/senior-fullstack
 skills-lock.json
 
+# OS and logs/general output
+.DS_Store
 issue.md
+*.log
+output*.txt
+test_out*.txt
+test_output*.txt
+check_out*.txt
+error*.txt
+*.tar.gz
+# Agent / scratch artefacts
+patch_*.txt
+scratch_*.rs
+test_*.rs
+update_*.py
+inject_*.py

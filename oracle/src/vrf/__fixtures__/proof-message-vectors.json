@@ -1,0 +1,50 @@
+[
+  {
+    "description": "zero seed",
+    "seed": "0",
+    "hex": "0000000000000000",
+    "derivation": "0u64.to_be_bytes() = [0,0,0,0,0,0,0,0]"
+  },
+  {
+    "description": "seed = 1 (LSB only)",
+    "seed": "1",
+    "hex": "0000000000000001",
+    "derivation": "1u64.to_be_bytes() = [0,0,0,0,0,0,0,1]"
+  },
+  {
+    "description": "seed = 255 (max single byte)",
+    "seed": "255",
+    "hex": "00000000000000ff",
+    "derivation": "255u64.to_be_bytes() = [0,0,0,0,0,0,0,0xff]"
+  },
+  {
+    "description": "seed = 256 (byte boundary rollover)",
+    "seed": "256",
+    "hex": "0000000000000100",
+    "derivation": "256u64.to_be_bytes() = [0,0,0,0,0,0,1,0]"
+  },
+  {
+    "description": "seed with all 8 bytes distinct (0x0102030405060708)",
+    "seed": "72623859790382856",
+    "hex": "0102030405060708",
+    "derivation": "0x0102030405060708u64.to_be_bytes() = [1,2,3,4,5,6,7,8]; verifies byte-order across all positions"
+  },
+  {
+    "description": "seed = 9_999_999_999_999_999 (representative VRF output)",
+    "seed": "9999999999999999",
+    "hex": "002386f26fc0ffff",
+    "derivation": "9999999999999999u64.to_be_bytes() = [0x00,0x23,0x86,0xf2,0x6f,0xc0,0xff,0xff]"
+  },
+  {
+    "description": "seed = 12_345_678_901_234_567_890 (large value, uses all 8 bytes)",
+    "seed": "12345678901234567890",
+    "hex": "ab54a98ceb1f0ad2",
+    "derivation": "12345678901234567890u64.to_be_bytes() = [0xab,0x54,0xa9,0x8c,0xeb,0x1f,0x0a,0xd2]"
+  },
+  {
+    "description": "seed = u64::MAX (18_446_744_073_709_551_615)",
+    "seed": "18446744073709551615",
+    "hex": "ffffffffffffffff",
+    "derivation": "u64::MAX.to_be_bytes() = [0xff;8]"
+  }
+]

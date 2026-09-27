@@ -1,0 +1,20 @@
+{
+  "name": "Tikka Contracts Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "rust-analyzer.check.command": "clippy"
+      },
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "esbenp.prettier-vscode",
+        "tamasfe.even-better-toml"
+      ]
+    }
+  },
+  "postCreateCommand": "cargo check --workspace && (cd oracle && npm ci)",
+  "remoteUser": "vscode"
+}

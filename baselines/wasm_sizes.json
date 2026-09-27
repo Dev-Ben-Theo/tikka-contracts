@@ -1,0 +1,15 @@
+{
+  "tolerance_bytes": 2048,
+  "contracts": {
+    "raffle_instance": {
+      "artifact": "raffle_instance.wasm",
+      "max_bytes": 131072,
+      "baseline_bytes": 57344
+    },
+    "raffle_factory": {
+      "artifact": "raffle_factory.wasm",
+      "max_bytes": 131072,
+      "baseline_bytes": 49152
+    }
+  }
+}

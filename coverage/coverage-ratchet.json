@@ -1,0 +1,160 @@
+{
+  "files": {
+    "contracts/raffle-factory/src/events.rs": {
+      "covered": 339,
+      "total": 339
+    },
+    "contracts/raffle-factory/src/lib.rs": {
+      "covered": 4092,
+      "total": 4092
+    },
+    "contracts/raffle-factory/src/registry.rs": {
+      "covered": 1,
+      "total": 1
+    },
+    "contracts/raffle-factory/src/tests/budget.rs": {
+      "covered": 135,
+      "total": 135
+    },
+    "contracts/raffle-factory/src/tests/governance.rs": {
+      "covered": 127,
+      "total": 127
+    },
+    "contracts/raffle-factory/src/tests/mod.rs": {
+      "covered": 1,
+      "total": 1
+    },
+    "contracts/raffle-factory/src/tests/tests/governance.rs": {
+      "covered": 1,
+      "total": 1
+    },
+    "contracts/raffle-factory/src/tests/views.rs": {
+      "covered": 193,
+      "total": 193
+    },
+    "contracts/raffle-factory/src/views.rs": {
+      "covered": 248,
+      "total": 248
+    },
+    "contracts/raffle-instance/src/admin.rs": {
+      "covered": 694,
+      "total": 694
+    },
+    "contracts/raffle-instance/src/attestation.rs": {
+      "covered": 168,
+      "total": 168
+    },
+    "contracts/raffle-instance/src/claim.rs": {
+      "covered": 359,
+      "total": 359
+    },
+    "contracts/raffle-instance/src/draw.rs": {
+      "covered": 446,
+      "total": 446
+    },
+    "contracts/raffle-instance/src/events.rs": {
+      "covered": 588,
+      "total": 588
+    },
+    "contracts/raffle-instance/src/helpers.rs": {
+      "covered": 1049,
+      "total": 1049
+    },
+    "contracts/raffle-instance/src/init.rs": {
+      "covered": 383,
+      "total": 383
+    },
+    "contracts/raffle-instance/src/lib.rs": {
+      "covered": 1002,
+      "total": 1002
+    },
+    "contracts/raffle-instance/src/randomness.rs": {
+      "covered": 663,
+      "total": 663
+    },
+    "contracts/raffle-instance/src/test.rs": {
+      "covered": 2788,
+      "total": 2788
+    },
+    "contracts/raffle-instance/src/tests/admin.rs": {
+      "covered": 849,
+      "total": 849
+    },
+    "contracts/raffle-instance/src/tests/budget.rs": {
+      "covered": 262,
+      "total": 262
+    },
+    "contracts/raffle-instance/src/tests/claim.rs": {
+      "covered": 218,
+      "total": 218
+    },
+    "contracts/raffle-instance/src/tests/claim_state.rs": {
+      "covered": 90,
+      "total": 90
+    },
+    "contracts/raffle-instance/src/tests/draw.rs": {
+      "covered": 909,
+      "total": 909
+    },
+    "contracts/raffle-instance/src/tests/fairness.rs": {
+      "covered": 143,
+      "total": 143
+    },
+    "contracts/raffle-instance/src/tests/init.rs": {
+      "covered": 647,
+      "total": 647
+    },
+    "contracts/raffle-instance/src/tests/invariants.rs": {
+      "covered": 143,
+      "total": 143
+    },
+    "contracts/raffle-instance/src/tests/mod.rs": {
+      "covered": 18,
+      "total": 18
+    },
+    "contracts/raffle-instance/src/tests/tickets.rs": {
+      "covered": 954,
+      "total": 954
+    },
+    "contracts/raffle-instance/src/tests/ttl.rs": {
+      "covered": 127,
+      "total": 127
+    },
+    "contracts/raffle-instance/src/tickets.rs": {
+      "covered": 738,
+      "total": 738
+    },
+    "contracts/raffle-instance/src/views.rs": {
+      "covered": 257,
+      "total": 257
+    },
+    "contracts/raffle-shared/src/config_builder.rs": {
+      "covered": 241,
+      "total": 241
+    },
+    "contracts/raffle-shared/src/constants.rs": {
+      "covered": 118,
+      "total": 118
+    },
+    "contracts/raffle-shared/src/errors.rs": {
+      "covered": 114,
+      "total": 114
+    },
+    "contracts/raffle-shared/src/events.rs": {
+      "covered": 30,
+      "total": 30
+    },
+    "contracts/raffle-shared/src/lib.rs": {
+      "covered": 788,
+      "total": 788
+    },
+    "contracts/raffle-shared/src/nft_mint_test.rs": {
+      "covered": 191,
+      "total": 191
+    }
+  },
+  "overall": {
+    "covered": 20114,
+    "total": 20114
+  }
+}

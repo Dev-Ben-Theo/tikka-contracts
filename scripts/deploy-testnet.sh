@@ -1,45 +1,47 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+# Deploy a fully initialised raffle factory to testnet.
+#
+# One command produces a factory that can create raffles: the instance WASM is
+# installed, the factory is deployed and initialised, the result is verified
+# against the chain, and the deployment is recorded with enough detail to
+# identify the code running at the address (issues #842, #843).
 
-# Source environment variables if .env exists locally
-if [ -f .env ]; then
-  export $(cat .env | xargs)
-fi
+set -euo pipefail
 
-echo "Building WASM..."
-stellar contract build
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/common.sh
+source "${SCRIPT_DIR}/common.sh"
 
-WASM_FILE="target/wasm32v1-none/release/raffle-instance.wasm"
+NETWORK="testnet"
 
-if [ ! -f "$WASM_FILE" ]; then
-    echo "Error: WASM file not found at $WASM_FILE"
-    exit 1
-fi
+load_env
+require_env DEPLOYER_SECRET_KEY "the account that signs the deployment"
+require_env ADMIN_ADDRESS "factory admin, passed to init_factory"
 
+TREASURY_ADDRESS="${TREASURY_ADDRESS:-${ADMIN_ADDRESS}}"
+PROTOCOL_FEE_BP="${PROTOCOL_FEE_BP:-0}"
 
-echo "Deploying to Testnet..."
-# Requires DEPLOYER_SECRET_KEY to be set
-if [ -z "$DEPLOYER_SECRET_KEY" ]; then
-    echo "Error: DEPLOYER_SECRET_KEY is required to deploy"
-    exit 1
-fi
+warn_on_cli_mismatch
+require_no_existing_deployment "${NETWORK}"
 
-CONTRACT_ID=$(stellar contract deploy \
-  --wasm "$WASM_FILE" \
-  --source "${DEPLOYER_SECRET_KEY}" \
-  --network testnet)
+build_contracts
 
-echo "Deployment successful!"
-echo "Contract ID: $CONTRACT_ID"
+deploy_and_init_factory \
+  "${NETWORK}" \
+  "${DEPLOYER_SECRET_KEY}" \
+  "${ADMIN_ADDRESS}" \
+  "${TREASURY_ADDRESS}" \
+  "${PROTOCOL_FEE_BP}"
 
-# Optionally write to deployments/testnet.json
-mkdir -p deployments
-cat <<EOF > deployments/testnet.json
-{
-  "network": "testnet",
-  "contractId": "$CONTRACT_ID",
-  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-}
-EOF
+verify_deployed_bytecode "${NETWORK}" "${FACTORY_CONTRACT_ID}"
 
-echo "Saved deployment info to deployments/testnet.json"
+write_deployment_manifest \
+  "${NETWORK}" \
+  "${ADMIN_ADDRESS}" \
+  "${TREASURY_ADDRESS}" \
+  "${PROTOCOL_FEE_BP}"
+
+echo ""
+echo "Deployment successful."
+echo "Factory contract ID: ${FACTORY_CONTRACT_ID}"
+echo "Instance WASM hash:  ${INSTANCE_WASM_HASH}"

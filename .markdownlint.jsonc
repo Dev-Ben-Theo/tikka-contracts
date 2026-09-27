@@ -1,0 +1,60 @@
+{
+  // Pragmatic markdownlint configuration for tikka-contracts.
+  //
+  // Design goals:
+  //   - Enforce structural consistency (headings, fences, lists, blanks).
+  //   - Keep contributor friction low: line-length is off, intentional
+  //     patterns (inline HTML in PR templates, duplicate section headings
+  //     in EVENTS.md, bare URLs in link lists) are not flagged.
+  //   - Run: npx markdownlint-cli2 "**/*.md"
+
+  // ── Disabled rules ────────────────────────────────────────────────────────
+
+  // Line length: documentation and code examples routinely exceed 80 chars;
+  // enforcing wrapping hurts readability more than it helps.
+  "MD013": false,
+
+  // Inline HTML: PR templates use <issue-number> placeholders intentionally.
+  "MD033": false,
+
+  // First line must be H1: PR templates and section fragments start with ##.
+  "MD041": false,
+
+  // Duplicate headings: EVENTS.md uses "ContractPaused" / "ContractUnpaused"
+  // for both factory and instance sections — duplicate names are intentional.
+  "MD024": false,
+
+  // Single top-level heading: many docs are sub-documents without a root #.
+  "MD025": false,
+
+  // Trailing punctuation in headings: some headings end with ) or : by design.
+  "MD026": false,
+
+  // Bare URLs: the README documentation section lists raw https:// links.
+  "MD034": false,
+
+  // Emphasis used as heading: spec files use _Validates: …_ lines as metadata
+  // annotations, not as structural headings.
+  "MD036": false,
+
+  // Table column style: existing tables use compact pipe style without padding;
+  // normalising would produce large diffs across generated spec files.
+  "MD060": false,
+
+  // ── Configured rules ──────────────────────────────────────────────────────
+
+  // Unordered list style: enforce dash (-) consistently.
+  "MD004": { "style": "dash" },
+
+  // Unordered list indentation: 2 spaces (matches existing style).
+  "MD007": { "indent": 2 },
+
+  // Heading style: ATX (# Heading) everywhere — no setext underlines.
+  "MD003": { "style": "atx" },
+
+  // Ordered list marker: use "one" (always 1.) for simplicity.
+  "MD029": { "style": "one" },
+
+  // Fenced code block style: backticks.
+  "MD048": { "style": "backtick" }
+}
